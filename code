@@ -1,0 +1,718 @@
+%MATLAB code for initial model
+% Parameters
+sigma = 0.0001; % Birth rate
+beta1 = 0.002; % Transmission rate for asymptomatic
+beta2 = 0.005; % Transmission rate for symptomatic
+gamma1 = 0.1; % Recovery rate for asymptomatic
+gamma2 = 0.2; % Recovery rate for symptomatic
+alpha1 = 0.001; % Bacterial interaction for asymptomatic
+alpha2 = 0.003; % Bacterial interaction for symptomatic
+mu1 = 0.0005; % Death rate for asymptomatic
+mu2 = 0.001; % Death rate for symptomatic
+nu = 0.0001; % Natural death rate
+delta = 0.01; % Bacteria decay rate
+k = 100; % Half-saturation constant
+p = 0.3; % Proportion of symptomatic cases
+N = 1e6; % Total population size
+% Initial conditions
+S0 = N - 100; % Initial susceptibles
+Ia0 = 50; % Initial asymptomatic infected
+Is0 = 50; % Initial symptomatic infected
+R0 = 0; % Initial recovered
+B0 = 10; % Initial bacterial concentration
+D0 = 0; % Initial deaths
+% Time span
+tspan = [0, 200]; % Time in days
+y0 = [S0, Ia0, Is0, R0, B0, D0];
+% Define ODE system
+ode = @(t, y) [
+ sigma * N - p * beta2 * y(1) * y(5) / (y(5) + k) - (1-p) * beta1 * y(1) * y(5) / (y(5) + k) - nu * 
+y(1); % dS/dt
+ (1-p) * beta1 * y(1) * y(5) / (y(5) + k) - gamma1 * y(2) - alpha1 * y(2) - mu1 * y(2) - nu * 
+y(2); % dIa/dt
+ p * beta2 * y(1) * y(5) / (y(5) + k) - gamma2 * y(3) - alpha2 * y(3) - mu2 * y(3) - nu * y(3); 
+% dIs/dt
+ gamma1 * y(2) + gamma2 * y(3) - nu * y(4); % dR/dt
+ alpha1 * y(2) + alpha2 * y(3) - delta * y(5); % dB/dt
+ mu1 * y(2) + mu2 * y(3) % dD/dt
+];
+% Solve ODE system
+[t, y] = ode45(ode, tspan, y0);
+% Extract results
+S = y(:, 1);
+Ia = y(:, 2);
+Is = y(:, 3);
+R = y(:, 4);
+B = y(:, 5);
+D = y(:, 6);
+% Plot results
+figure;
+subplot(3, 2, 1);
+plot(t, S, 'b', 'LineWidth', 2);
+title('Susceptible');
+xlabel('Time (days)');
+ylabel('Population');
+grid on;
+subplot(3, 2, 2);
+plot(t, Ia, 'm', 'LineWidth', 2);
+title('Asymptomatic Infected');
+xlabel('Time (days)');
+ylabel('Population');
+grid on;
+subplot(3, 2, 3);
+plot(t, Is, 'r', 'LineWidth', 2);
+title('Symptomatic Infected');
+xlabel('Time (days)');
+ylabel('Population');
+grid on;
+subplot(3, 2, 4);
+plot(t, R, 'g', 'LineWidth', 2);
+title('Recovered');
+xlabel('Time (days)');
+ylabel('Population');
+grid on;
+subplot(3, 2, 5);
+plot(t, B, 'k', 'LineWidth', 2);
+title('Bacteria Concentration');
+xlabel('Time (days)');
+ylabel('Concentration');
+grid on;
+subplot(3, 2, 6);
+plot(t, D, 'c', 'LineWidth', 2);
+title('Disease-Induced Deaths');
+xlabel('Time (days)');
+ylabel('Deaths');
+grid on;
+
+%MATLAB code for model with control mechanism 1
+% Parameters
+sigma = 0.0001; % Birth rate
+beta1 = 0.002; % Transmission rate for asymptomatic
+beta2 = 0.005; % Transmission rate for symptomatic
+gamma1 = 0.1; % Recovery rate for asymptomatic
+gamma2 = 0.2; % Recovery rate for symptomatic
+alpha1 = 0.001; % Bacterial interaction for asymptomatic
+alpha2 = 0.003; % Bacterial interaction for symptomatic
+mu1 = 0.0005; % Death rate for asymptomatic
+mu2 = 0.001; % Death rate for symptomatic
+nu = 0.0001; % Natural death rate
+delta = 0.01; % Bacteria decay rate
+k = 100; % Half-saturation constant
+p = 0.3; % Proportion of symptomatic cases
+N = 1e6; % Total population size
+% Control parameters: hygienic disposal of human feces
+u1_with_control = 0.5; % Control effort (50% effectiveness)
+u1_without_control = 0; % No control (u1 = 0)
+% Initial conditions
+S0 = N - 100; % Initial susceptibles
+Ia0 = 50; % Initial asymptomatic infected
+Is0 = 50; % Initial symptomatic infected
+R0 = 0; % Initial recovered
+B0 = 10; % Initial bacterial concentration
+D0 = 0; % Initial deaths
+% Time span for simulation
+tspan = [0, 200]; % Time in days
+y0 = [S0, Ia0, Is0, R0, B0, D0]; % Initial state vector
+% Define the system of ODEs with control (hygienic disposal of human feces)
+ode_with_control = @(t, y) [
+ -sigma * N - p * beta2 * y(1) * y(5) / (y(5) + k) - (1 - p) * beta1 * y(1) * y(5) / (y(5) + k) - nu * 
+y(1); % dS/dt
+ (1 - p) * beta1 * y(1) * y(5) / (y(5) + k) - gamma1 * y(2) - alpha1 * (1 - u1_with_control) * 
+y(2) - mu1 * y(2) - nu * y(2); % dIa/dt
+p * beta2 * y(1) * y(5) / (y(5) + k) - gamma2 * y(3) - alpha2 * (1 - u1_with_control) * y(3) -
+mu2 * y(3) - nu * y(3); % dIs/dt
+ gamma1 * y(2) + gamma2 * y(3) - nu * y(4); % dR/dt
+ alpha1 * (1 - u1_with_control) * y(2) + alpha2 * (1 - u1_with_control) * y(3) - delta * y(5); 
+% dB/dt
+ mu1 * y(2) + mu2 * y(3); % dD/dt
+];
+ode_without_control = @(t, y) [
+ -sigma * N - p * beta2 * y(1) * y(5) / (y(5) + k) - (1 - p) * beta1 * y(1) * y(5) / (y(5) + k) - nu * 
+y(1); % dS/dt
+ (1 - p) * beta1 * y(1) * y(5) / (y(5) + k) - gamma1 * y(2) - alpha1 * (1 - u1_without_control) 
+* y(2) - mu1 * y(2) - nu * y(2); % dIa/dt
+ p * beta2 * y(1) * y(5) / (y(5) + k) - gamma2 * y(3) - alpha2 * (1 - u1_without_control) * 
+y(3) - mu2 * y(3) - nu * y(3); % dIs/dt
+ gamma1 * y(2) + gamma2 * y(3) - nu * y(4); % dR/dt
+ alpha1 * (1 - u1_without_control) * y(2) + alpha2 * (1 - u1_without_control) * y(3) - delta 
+* y(5); % dB/dt
+ mu1 * y(2) + mu2 * y(3); % dD/dt
+];
+% Solve the system of ODEs with control
+[t_with_control, y_with_control] = ode45(ode_with_control, tspan, y0);
+% Solve the system of ODEs without control
+[t_without_control, y_without_control] = ode45(ode_without_control, tspan, y0);
+% Extract the results
+S_with_control = y_with_control(:, 1);
+Ia_with_control = y_with_control(:, 2);
+Is_with_control = y_with_control(:, 3);
+R_with_control = y_with_control(:, 4);
+B_with_control = y_with_control(:, 5);
+D_with_control = y_with_control(:, 6);
+S_without_control = y_without_control(:, 1);
+Ia_without_control = y_without_control(:, 2);
+Is_without_control = y_without_control(:, 3);
+R_without_control = y_without_control(:, 4);
+B_without_control = y_without_control(:, 5);
+D_without_control = y_without_control(:, 6);
+% Plot the comparison with and without control (dotted lines for no control)
+figure;
+subplot(3, 2, 1);
+plot(t_with_control, S_with_control, 'b', 'LineWidth', 2); hold on;
+plot(t_without_control, S_without_control, 'b:', 'LineWidth', 2); % Dotted line for no control
+title('Susceptible Population');
+xlabel('Time (days)');
+ylabel('Population');
+grid on;
+legend('With Control', 'Without Control');
+subplot(3, 2, 2);
+plot(t_with_control, Ia_with_control, 'm', 'LineWidth', 2); hold on;
+plot(t_without_control, Ia_without_control, 'm:', 'LineWidth', 2); % Dotted line for no 
+control
+title('Asymptomatic Infected');
+xlabel('Time (days)');
+ylabel('Population');
+grid on;
+legend('With Control', 'Without Control');
+subplot(3, 2, 3);
+plot(t_with_control, Is_with_control, 'r', 'LineWidth', 2); hold on;
+plot(t_without_control, Is_without_control, 'r:', 'LineWidth', 2); % Dotted line for no control
+title('Symptomatic Infected');
+xlabel('Time (days)');
+ylabel('Population');
+grid on;
+legend('With Control', 'Without Control');
+subplot(3, 2, 4);
+plot(t_with_control, R_with_control, 'g', 'LineWidth', 2); hold on;
+plot(t_without_control, R_without_control, 'g:', 'LineWidth', 2); % Dotted line for no control
+title('Recovered');
+xlabel('Time (days)');
+ylabel('Population');
+grid on;
+legend('With Control', 'Without Control');
+subplot(3, 2, 5);
+plot(t_with_control, B_with_control, 'k', 'LineWidth', 2); hold on;
+plot(t_without_control, B_without_control, 'k:', 'LineWidth', 2); % Dotted line for no control
+title('Bacteria Concentration');
+xlabel('Time (days)');
+ylabel('Concentration');
+grid on;
+legend('With Control', 'Without Control');
+subplot(3, 2, 6);
+plot(t_with_control, D_with_control, 'c', 'LineWidth', 2); hold on;
+plot(t_without_control, D_without_control, 'c:', 'LineWidth', 2); % Dotted line for no control
+title('Disease-Induced Deaths');
+xlabel('Time (days)');
+ylabel('Deaths');
+grid on;
+legend('With Control', 'Without Control');
+
+%MATLAB code for model with control mechanism 2
+% Parameters
+sigma = 0.0001; % Birth rate
+beta1 = 0.002; % Transmission rate for asymptomatic
+beta2 = 0.005; % Transmission rate for symptomatic
+gamma1 = 0.1; % Recovery rate for asymptomatic
+gamma2 = 0.2; % Recovery rate for symptomatic
+alpha1 = 0.001; % Bacterial interaction for asymptomatic
+alpha2 = 0.003; % Bacterial interaction for symptomatic
+mu1 = 0.0005; % Death rate for asymptomatic
+mu2 = 0.001; % Death rate for symptomatic
+nu = 0.0001; % Natural death rate
+delta = 0.01; % Bacteria decay rate
+k = 100; % Half-saturation constant
+p = 0.3; % Proportion of symptomatic cases
+N = 1e6; % Total population size
+% Initial conditions
+S0 = N - 100; % Initial susceptibles
+Ia0 = 50; % Initial asymptomatic infected
+Is0 = 50; % Initial symptomatic infected
+R0 = 0; % Initial recovered
+B0 = 10; % Initial bacterial concentration
+D0 = 0; % Initial deaths
+% Time span
+tspan = [0, 200]; % Time in days
+y0 = [S0, Ia0, Is0, R0, B0, D0];
+% Define time-dependent control variable u2 (safe drinking water)
+u2 = @(t) min(1, max(0, 0.5 + 0.1 * sin(0.05 * t))); % Time-varying control (between 0 and 1)
+% Define ODE system with control for safe drinking water (u2)
+ode_with_control = @(t, y) [
+ sigma * N - p * beta2 * (1 - u2(t)) * y(1) * y(5) / (y(5) + k) - (1 - p) * beta1 * (1 - u2(t)) * y(1) 
+* y(5) / (y(5) + k) - nu * y(1); % dS/dt
+ (1 - p) * beta1 * (1 - u2(t)) * y(1) * y(5) / (y(5) + k) - gamma1 * y(2) - alpha1 * y(2) - mu1 * 
+y(2) - nu * y(2); % dIa/dt
+ p * beta2 * (1 - u2(t)) * y(1) * y(5) / (y(5) + k) - gamma2 * y(3) - alpha2 * y(3) - mu2 * y(3) -
+nu * y(3); % dIs/dt
+ gamma1 * y(2) + gamma2 * y(3) - nu * y(4); % dR/dt
+ alpha1 * y(2) + alpha2 * y(3) - delta * y(5); % dB/dt
+ mu1 * y(2) + mu2 * y(3) % dD/dt
+];
+% Define ODE system without control (no reduction in beta1 or beta2)
+ode_without_control = @(t, y) [
+ sigma * N - p * beta2 * y(1) * y(5) / (y(5) + k) - (1 - p) * beta1 * y(1) * y(5) / (y(5) + k) - nu * 
+y(1); % dS/dt
+(1 - p) * beta1 * y(1) * y(5) / (y(5) + k) - gamma1 * y(2) - alpha1 * y(2) - mu1 * y(2) - nu * 
+y(2); % dIa/dt
+ p * beta2 * y(1) * y(5) / (y(5) + k) - gamma2 * y(3) - alpha2 * y(3) - mu2 * y(3) - nu * y(3); 
+% dIs/dt
+ gamma1 * y(2) + gamma2 * y(3) - nu * y(4); % dR/dt
+ alpha1 * y(2) + alpha2 * y(3) - delta * y(5); % dB/dt
+ mu1 * y(2) + mu2 * y(3) % dD/dt
+];
+% Solve ODE system with control
+[t_with_control, y_with_control] = ode45(ode_with_control, tspan, y0);
+% Solve ODE system without control
+[t_without_control, y_without_control] = ode45(ode_without_control, tspan, y0);
+% Extract results for both cases
+S_with_control = y_with_control(:, 1);
+Ia_with_control = y_with_control(:, 2);
+Is_with_control = y_with_control(:, 3);
+R_with_control = y_with_control(:, 4);
+B_with_control = y_with_control(:, 5);
+D_with_control = y_with_control(:, 6);
+S_without_control = y_without_control(:, 1);
+Ia_without_control = y_without_control(:, 2);
+Is_without_control = y_without_control(:, 3);
+R_without_control = y_without_control(:, 4);
+B_without_control = y_without_control(:, 5);
+D_without_control = y_without_control(:, 6);
+% Plot results comparing with and without control
+figure;
+subplot(3, 2, 1);
+plot(t_with_control, S_with_control, 'b', 'LineWidth', 2); hold on;
+plot(t_without_control, S_without_control, 'b--', 'LineWidth', 2);
+title('Susceptible');
+xlabel('Time (days)');
+ylabel('Population');
+legend('With Control', 'Without Control');
+grid on;
+subplot(3, 2, 2);
+plot(t_with_control, Ia_with_control, 'm', 'LineWidth', 2); hold on;
+plot(t_without_control, Ia_without_control, 'm--', 'LineWidth', 2);
+title('Asymptomatic Infected');
+xlabel('Time (days)');
+ylabel('Population');
+legend('With Control', 'Without Control');
+grid on;
+subplot(3, 2, 3);
+plot(t_with_control, Is_with_control, 'r', 'LineWidth', 2); hold on;
+plot(t_without_control, Is_without_control, 'r--', 'LineWidth', 2);
+title('Symptomatic Infected');
+xlabel('Time (days)');
+ylabel('Population');
+legend('With Control', 'Without Control');
+grid on;
+subplot(3, 2, 4);
+plot(t_with_control, R_with_control, 'g', 'LineWidth', 2); hold on;
+plot(t_without_control, R_without_control, 'g--', 'LineWidth', 2);
+title('Recovered');
+xlabel('Time (days)');
+ylabel('Population');
+legend('With Control', 'Without Control');
+grid on;
+subplot(3, 2, 5);
+plot(t_with_control, B_with_control, 'k', 'LineWidth', 2); hold on;
+plot(t_without_control, B_without_control, 'k--', 'LineWidth', 2);
+title('Bacteria Concentration');
+xlabel('Time (days)');
+ylabel('Concentration');
+legend('With Control', 'Without Control');
+grid on;
+subplot(3, 2, 6);
+plot(t_with_control, D_with_control, 'c', 'LineWidth', 2); hold on;
+plot(t_without_control, D_without_control, 'c--', 'LineWidth', 2);
+title('Disease-Induced Deaths');
+xlabel('Time (days)');
+ylabel('Deaths');
+legend('With Control', 'Without Control');
+grid on;
+
+%MATLAB code for model with control mechanism 3
+% Parameters
+sigma = 0.0001; % Birth rate
+beta1 = 0.002; % Transmission rate for asymptomatic
+beta2 = 0.005; % Transmission rate for symptomatic
+gamma1 = 0.1; % Recovery rate for asymptomatic
+gamma2 = 0.2; % Recovery rate for symptomatic
+alpha1 = 0.001; % Bacterial interaction for asymptomatic
+alpha2 = 0.003; % Bacterial interaction for symptomatic
+mu1 = 0.0005; % Death rate for asymptomatic
+mu2 = 0.001; % Death rate for symptomatic
+nu = 0.0001; % Natural death rate
+delta = 0.01; % Bacteria decay rate
+k = 100; % Half-saturation constant
+p = 0.3; % Proportion of symptomatic cases
+N = 1e6; % Total population size
+% Control variables (interventions)
+u2 = 0.25; % Food hygiene control (0 = no control, 1 = maximum control)
+u3 = 0.25; % Cooking control (0 = no control, 1 = maximum control)
+% Initial conditions
+S0 = N - 100; % Initial susceptibles
+Ia0 = 50; % Initial asymptomatic infected
+Is0 = 50; % Initial symptomatic infected
+R0 = 0; % Initial recovered
+B0 = 10; % Initial bacterial concentration
+D0 = 0; % Initial deaths
+% Time span
+tspan = [0, 200]; % Time in days
+y0 = [S0, Ia0, Is0, R0, B0, D0];
+% Define ODE system with control
+ode_with_control = @(t, y) [
+ sigma * N - p * beta2 * y(1) * y(5) / (y(5) + k) * (1 - u2) * (1 - u3) - (1 - p) * beta1 * y(1) * 
+y(5) / (y(5) + k) * (1 - u2) * (1 - u3) - nu * y(1); % dS/dt
+ (1 - p) * beta1 * y(1) * y(5) / (y(5) + k) * (1 - u2) * (1 - u3) - gamma1 * y(2) - alpha1 * y(2) -
+mu1 * y(2) - nu * y(2); % dIa/dt
+ p * beta2 * y(1) * y(5) / (y(5) + k) * (1 - u2) * (1 - u3) - gamma2 * y(3) - alpha2 * y(3) - mu2 
+* y(3) - nu * y(3); % dIs/dt
+ gamma1 * y(2) + gamma2 * y(3) - nu * y(4); % dR/dt
+ alpha1 * y(2) + alpha2 * y(3) - delta * y(5); % dB/dt
+ mu1 * y(2) + mu2 * y(3) % dD/dt
+];
+% Define ODE system without control (u2 = 0 and u3 = 0)
+ode_without_control = @(t, y) [
+ sigma * N - p * beta2 * y(1) * y(5) / (y(5) + k) - (1 - p) * beta1 * y(1) * y(5) / (y(5) + k) - nu * 
+y(1); % dS/dt
+ (1 - p) * beta1 * y(1) * y(5) / (y(5) + k) - gamma1 * y(2) - alpha1 * y(2) - mu1 * y(2) - nu * 
+y(2); % dIa/dt
+ p * beta2 * y(1) * y(5) / (y(5) + k) - gamma2 * y(3) - alpha2 * y(3) - mu2 * y(3) - nu * y(3); 
+% dIs/dt
+ gamma1 * y(2) + gamma2 * y(3) - nu * y(4); % dR/dt
+ alpha1 * y(2) + alpha2 * y(3) - delta * y(5); % dB/dt
+ mu1 * y(2) + mu2 * y(3) % dD/dt
+];
+% Solve ODE system with control
+[t_with_control, y_with_control] = ode45(ode_with_control, tspan, y0);
+S_with_control = y_with_control(:, 1);
+Ia_with_control = y_with_control(:, 2);
+Is_with_control = y_with_control(:, 3);
+% Solve ODE system without control
+[t_without_control, y_without_control] = ode45(ode_without_control, tspan, y0);
+S_without_control = y_without_control(:, 1);
+Ia_without_control = y_without_control(:, 2);
+Is_without_control = y_without_control(:, 3);
+% Plot results
+figure;
+% Susceptible population plot
+subplot(3, 2, 1);
+plot(t_with_control, S_with_control, 'b', 'LineWidth', 2); % With control (solid)
+hold on;
+plot(t_without_control, S_without_control, 'b:', 'LineWidth', 2); % Without control (dotted)
+title('Susceptible Population');
+xlabel('Time (days)');
+ylabel('Population');
+legend('With control', 'Without control');
+grid on;
+% Asymptomatic infected population plot
+subplot(3, 2, 2);
+plot(t_with_control, Ia_with_control, 'm', 'LineWidth', 2); % With control (solid)
+hold on;
+plot(t_without_control, Ia_without_control, 'm:', 'LineWidth', 2); % Without control (dotted)
+title('Asymptomatic Infected');
+xlabel('Time (days)');
+ylabel('Population');
+legend('With control', 'Without control');
+grid on;
+% Symptomatic infected population plot
+subplot(3, 2, 3);
+plot(t_with_control, Is_with_control, 'r', 'LineWidth', 2); % With control (solid)
+hold on;
+plot(t_without_control, Is_without_control, 'r:', 'LineWidth', 2); % Without control (dotted)
+title('Symptomatic Infected');
+xlabel('Time (days)');
+ylabel('Population');
+legend('With control', 'Without control');
+grid on;
+% Recovered population plot
+subplot(3, 2, 4);
+plot(t_with_control, y_with_control(:, 4), 'g', 'LineWidth', 2); % With control (solid)
+hold on;
+plot(t_without_control, y_without_control(:, 4), 'g:', 'LineWidth', 2); % Without control 
+(dotted)
+title('Recovered');
+xlabel('Time (days)');
+ylabel('Population');
+legend('With control', 'Without control');
+grid on;
+% Bacteria concentration plot
+subplot(3, 2, 5);
+plot(t_with_control, y_with_control(:, 5), 'k', 'LineWidth', 2); % With control (solid)
+hold on;
+plot(t_without_control, y_without_control(:, 5), 'k:', 'LineWidth', 2); % Without control 
+(dotted)
+title('Bacteria Concentration');
+xlabel('Time (days)');
+ylabel('Concentration');
+legend('With control', 'Without control');
+grid on;
+% Disease-induced deaths plot
+subplot(3, 2, 6);
+plot(t_with_control, y_with_control(:, 6), 'c', 'LineWidth', 2); % With control (solid)
+hold on;
+plot(t_without_control, y_without_control(:, 6), 'c:', 'LineWidth', 2); % Without control 
+(dotted)
+title('Disease-Induced Deaths');
+xlabel('Time (days)');
+ylabel('Deaths');
+legend('With control', 'Without control');
+grid on;
+
+%MATLAB code for model with control mechanism 4
+% Plot results
+figure;
+% Susceptible Population
+subplot(3, 2, 1);
+plot(t_no_control, S_no_control, 'b--', 'LineWidth', 2); % Without control (dashed line in blue)
+hold on;
+plot(t_with_control, S_with_control, 'b-', 'LineWidth', 2); % With control (solid line in blue)
+title('Susceptible Population');
+xlabel('Time (days)');
+ylabel('Population');
+legend('Without Control', 'With Control');
+grid on;
+% Asymptomatic Infected
+subplot(3, 2, 2);
+plot(t_no_control, Ia_no_control, 'm--', 'LineWidth', 2); % Without control (dashed line in 
+pink)
+hold on;
+plot(t_with_control, Ia_with_control, 'm-', 'LineWidth', 2); % With control (solid line in pink)
+title('Asymptomatic Infected');
+xlabel('Time (days)');
+ylabel('Population');
+legend('Without Control', 'With Control');
+grid on;
+% Symptomatic Infected
+subplot(3, 2, 3);
+plot(t_no_control, Is_no_control, 'r--', 'LineWidth', 2); % Without control (dashed line in 
+orange)
+hold on;
+plot(t_with_control, Is_with_control, 'r-', 'LineWidth', 2); % With control (solid line in 
+orange)
+title('Symptomatic Infected');
+xlabel('Time (days)');
+ylabel('Population');
+legend('Without Control', 'With Control');
+grid on;
+% Recovered Population
+subplot(3, 2, 4);
+plot(t_no_control, R_no_control, 'g--', 'LineWidth', 2); % Without control (dashed line in 
+green)
+hold on;
+plot(t_with_control, R_with_control, 'g-', 'LineWidth', 2); % With control (solid line in green)
+title('Recovered Population');
+xlabel('Time (days)');
+ylabel('Population');
+legend('Without Control', 'With Control');
+grid on;
+% Bacteria Concentration
+subplot(3, 2, 5);
+plot(t_no_control, B_no_control, 'k--', 'LineWidth', 2); % Without control (dashed line in black)
+hold on;
+plot(t_with_control, B_with_control, 'k-', 'LineWidth', 2); % With control (solid line in black)
+title('Bacteria Concentration');
+xlabel('Time (days)');
+ylabel('Concentration');
+legend('Without Control', 'With Control');
+grid on;
+% Disease-Induced Deaths
+subplot(3, 2, 6);
+plot(t_no_control, D_no_control, 'c--', 'LineWidth', 2); % Without control (dashed line in 
+light blue)
+hold on;
+plot(t_with_control, D_with_control, 'c-', 'LineWidth', 2); % With control (solid line in light 
+blue)
+title('Disease-Induced Deaths');
+xlabel('Time (days)');
+ylabel('Deaths');
+legend('Without Control', 'With Control');
+grid on;
+
+%MATLAB code for residual analysis
+% Parameters
+sigma = 0.0001; % Birth rate
+beta1 = 0.002; % Transmission rate for asymptomatic
+beta2 = 0.005; % Transmission rate for symptomatic
+gamma1 = 0.1; % Recovery rate for asymptomatic
+gamma2 = 0.2; % Recovery rate for symptomatic
+alpha1 = 0.001; % Bacterial interaction for asymptomatic
+alpha2 = 0.003; % Bacterial interaction for symptomatic
+mu1 = 0.0008; % Adjusted death rate for asymptomatic
+mu2 = 0.0015; % Adjusted death rate for symptomatic
+nu = 0.0001; % Natural death rate
+delta = 0.01; % Bacteria decay rate
+k = 100; % Half-saturation constant
+p = 0.3; % Proportion of symptomatic cases
+N = 1e6; % Total population size
+% Initial conditions
+S0 = N - 100; % Initial susceptibles
+Ia0 = 50; % Initial asymptomatic infected
+Is0 = 50; % Initial symptomatic infected
+R0 = 0; % Initial recovered
+B0 = 10; % Initial bacterial concentration
+D0 = 0; % Initial deaths
+y0 = [S0, Ia0, Is0, R0, B0, D0];
+% Observed data
+time_data = [0, 5, 6, 13, 20, 27, 37, 45, 53, 67, 77, 87, 92, 103, 114, 124, 132, 143, 157, 173, 
+196]; % Days
+cases_observed = [2175, 3075, 3279, 3806, 4270, 4583, 5285, 5876, 6548, 8137, 11183, 
+15983, ...
+ 19499, 27431, 37204, 48647, 56092, 62607, 69761, 78140, 86107]; % Total cases
+deaths_observed = [22, 26, 27, 33, 32, 33, 35, 35, 35, 41, 51, 60, 66, 74, 85, 108, 120, 131, 
+139, 163, 181]; % Total deaths
+% Time span for simulation
+tspan = [0, max(time_data)];
+% Define ODE system
+ode = @(t, y) [
+ sigma * N - p * beta2 * y(1) * y(5) / (y(5) + k) - (1-p) * beta1 * y(1) * y(5) / (y(5) + k) - nu * 
+y(1); % dS/dt
+ (1-p) * beta1 * y(1) * y(5) / (y(5) + k) - gamma1 * y(2) - alpha1 * y(2) - mu1 * y(2) - nu * 
+y(2); % dIa/dt
+ p * beta2 * y(1) * y(5) / (y(5) + k) - gamma2 * y(3) - alpha2 * y(3) - mu2 * y(3) - nu * y(3); 
+% dIs/dt
+ gamma1 * y(2) + gamma2 * y(3) - nu * y(4); % dR/dt
+ alpha1 * y(2) + alpha2 * y(3) - delta * y(5); % dB/dt
+ mu1 * y(2) + mu2 * y(3) % dD/dt
+];
+% Solve ODE system
+[t, y] = ode45(ode, tspan, y0);
+% Extract total cases (Ia + Is) and deaths
+total_cases_predicted = y(:, 2) + y(:, 3); % Ia + Is
+total_deaths_predicted = y(:, 6); % D
+% Interpolate to match observed time points
+cases_predicted = interp1(t, total_cases_predicted, time_data);
+deaths_predicted = interp1(t, total_deaths_predicted, time_data);
+% Compute residuals
+cases_residuals = cases_observed - cases_predicted;
+deaths_residuals = deaths_observed - deaths_predicted;
+% Plot residuals
+figure;
+subplot(2, 1, 1);
+plot(time_data, cases_residuals, 'bo-', 'LineWidth', 2);
+xlabel('Time (days)');
+ylabel('Residuals (Cases)');
+title('Residuals for Total Cases');
+grid on;
+subplot(2, 1, 2);
+plot(time_data, abs(deaths_residuals), 'ro-', 'LineWidth', 2); % Plot absolute values for 
+deaths residuals
+xlabel('Time (days)');
+ylabel('Residuals (Deaths)');
+title('Residuals for Total Deaths');
+grid on;
+% Residual diagnostics
+figure;
+% Histogram for case residuals
+subplot(2, 2, 1);
+histogram(cases_residuals, 10, 'FaceColor', 'b');
+xlabel('Residuals (Cases)');
+ylabel('Frequency');
+title('Histogram of Case Residuals');
+grid on;
+% Histogram for death residuals (absolute values)
+subplot(2, 2, 2);
+histogram(abs(deaths_residuals), 10, 'FaceColor', 'r'); % Absolute values for histogram
+xlabel('Residuals (Deaths)');
+ylabel('Frequency');
+title('Histogram of Death Residuals');
+grid on;
+% Autocorrelation for case residuals
+subplot(2, 2, 3);
+autocorr(cases_residuals);
+title('Autocorrelation of Case Residuals');
+% Autocorrelation for death residuals (absolute values)
+subplot(2, 2, 4);
+autocorr(abs(deaths_residuals)); % Absolute values for autocorrelation
+title('Autocorrelation of Death Residuals');
+
+%MATLAB code for sensitivity analysis
+function cholera_sensitivity_analysis_with_tornado
+ % Initial Conditions and Parameters
+ sigma = 0.1; beta1 = 0.5; beta2 = 0.6; gamma1 = 0.3; gamma2 = 0.3; 
+ alpha1 = 0.02; alpha2 = 0.03; mu1 = 0.01; mu2 = 0.02; nu = 0.05; delta = 0.1; k = 0.01;
+ p = 0.5; % Proportion symptomatic
+ % Define Initial Values for S, Ia, Is, R, B, D
+ S0 = 50000; Ia0 = 1; Is0 = 0; R0 = 0; B0 = 0.01; D0 = 0;
+ y0 = [S0, Ia0, Is0, R0, B0, D0]; % Initial conditions vector
+ 
+ % Time span for simulation
+ tspan = [0 200]; % Time from 0 to 200 days
+ 
+ % Define model parameters
+ params = [sigma, beta1, beta2, gamma1, gamma2, alpha1, alpha2, mu1, mu2, nu, delta, k, 
+p];
+ 
+ % Solve the system of ODEs
+ [t, y] = ode45(@(t, y) cholera_model(t, y, params), tspan, y0);
+ 
+ % Output: Sensitivity analysis and tornado plot
+ sensitivity_analysis_and_tornado(params, y, t);
+end
+% Cholera model equations
+function dydt = cholera_model(t, y, params)
+ S = y(1); Ia = y(2); Is = y(3); R = y(4); B = y(5); D = y(6);
+ 
+ sigma = params(1); beta1 = params(2); beta2 = params(3); gamma1 = params(4); gamma2 
+= params(5);
+ alpha1 = params(6); alpha2 = params(7); mu1 = params(8); mu2 = params(9); nu = 
+params(10);
+ delta = params(11); k = params(12); p = params(13);
+ 
+ dSdt = -sigma * S - p * beta2 * S * (B / (B + k)) - (1 - p) * beta1 * S * (B / (B + k)) - nu * S;
+ dIadt = (1 - p) * beta1 * S * (B / (B + k)) - gamma1 * Ia - alpha1 * Ia - mu1 * Ia - nu * Ia;
+ dIsdt = p * beta2 * S * (B / (B + k)) - gamma2 * Is - alpha2 * Is - mu2 * Is - nu * Is;
+ dRdt = gamma1 * Ia + gamma2 * Is - nu * R;
+ dBdt = alpha1 * Ia + alpha2 * Is - delta * B;
+ dDdt = mu1 * Ia + mu2 * Is;
+ 
+ dydt = [dSdt; dIadt; dIsdt; dRdt; dBdt; dDdt];
+end
+% Sensitivity Analysis Function and Tornado Plot
+function sensitivity_analysis_and_tornado(params, y, t)
+ % Output Variables of Interest (Infected Individuals and Bacteria)
+ total_infected = y(:, 2) + y(:, 3); % Ia + Is (total infected individuals)
+ total_bacteria = y(:, 5); % Bacteria concentration
+ 
+ % Compute baseline infected total and bacteria concentration
+ baseline_infected = sum(total_infected);
+ baseline_bacteria = sum(total_bacteria);
+ % Perturb each parameter by 10%
+ perturb_factor = 0.1;
+ n_params = length(params);
+ sensitivity_indices = zeros(n_params, 1);
+ 
+ for i = 1:n_params
+ % Perturb one parameter
+ perturbed_params = params;
+ perturbed_params(i) = perturbed_params(i) * (1 + perturb_factor);
+ 
+ % Solve the model with the perturbed parameter
+ [t_perturbed, y_perturbed] = ode45(@(t, y) cholera_model(t, y, perturbed_params), t, 
+y(1, :));
+ 
+ % Get the new infected total and bacteria concentration
+ total_infected_perturbed = y_perturbed(:, 2) + y_perturbed(:, 3);
+ total_bacteria_perturbed = y_perturbed(:, 5);
+ 
+ % Compute the new sums of infected and bacteria concentration
+ perturbed_infected = sum(total_infected_perturbed);
+ perturbed_bacteria = sum(total_bacteria_perturbed);
+ 
+ % Sensitivity indices for infected and bacteria concentration
+ sensitivity_infected = (perturbed_infected - baseline_infected) / baseline_infected;
+ sensitivity_bacteria = (perturbed_bacteria - baseline_bacteria) / baseline_bacteria;
+ 
+ % Store the sensitivity indices
+ sensitivity_indices(i) = sensitivity_infected; % You can choose either infected or bacteria
+ end
+ % Create a Tornado Plot (Bar Chart) for Sensitivity Indices
+ parameter_names = {'\sigma', '\beta_1', '\beta_2', '\gamma_1', '\gamma_2', ...
+ '\alpha_1', '\alpha_2', '\mu_1', '\mu_2', '\nu', '\delta', 'k', 'p'};
+ 
+ % Plotting
+ figure;
+ barh(sensitivity_indices, 'FaceColor', [0.2, 0.6, 1], 'EdgeColor', 'black');
+ set(gca, 'yticklabel', parameter_names);
+ title('Tornado Plot: Sensitivity Analysis of Cholera Model');
+ xlabel('Sensitivity Index');
+ ylabel('Parameters');
+ grid on;
+end
